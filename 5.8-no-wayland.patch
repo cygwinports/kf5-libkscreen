@@ -1,0 +1,121 @@
+--- origsrc/libkscreen-5.8.3/CMakeLists.txt	2016-11-01 07:15:24.000000000 -0500
++++ src/libkscreen-5.8.3/CMakeLists.txt	2016-11-14 01:07:55.058221900 -0600
+@@ -20,7 +20,7 @@ set(REQUIRED_QT_VERSION 5.4.0)
+ find_package(Qt5 ${REQUIRED_QT_VERSION} CONFIG REQUIRED Core DBus Gui Test X11Extras)
+ 
+ # Wayland backend
+-find_package(KF5Wayland CONFIG REQUIRED)
++find_package(KF5Wayland CONFIG)
+ add_feature_info("KF5Wayland" KF5Wayland_FOUND "Required for building libkscreen's KWayland backend")
+ 
+ # xrandr backend
+--- origsrc/libkscreen-5.8.3/autotests/CMakeLists.txt	2016-11-01 07:15:24.000000000 -0500
++++ src/libkscreen-5.8.3/autotests/CMakeLists.txt	2016-11-14 01:10:55.556976700 -0600
+@@ -23,6 +23,7 @@ kscreen_add_test(testinprocess)
+ kscreen_add_test(testbackendloader)
+ kscreen_add_test(testlog)
+ 
++if(KF5Wayland_FOUND)
+ set(KSCREEN_WAYLAND_LIBS
+     KF5::WaylandServer KF5::WaylandClient
+ )
+@@ -37,6 +38,7 @@ include_directories(${CMAKE_CURRENT_SOUR
+ kscreen_add_test(testkwaylandbackend)
+ kscreen_add_test(testkwaylandconfig)
+ kscreen_add_test(testkwaylanddpms)
++endif()
+ 
+ set(KSCREEN_WAYLAND_LIBS "")
+ set(KSCREEN_WAYLAND_SRCS "")
+--- origsrc/libkscreen-5.8.3/backends/CMakeLists.txt	2016-11-01 07:15:24.000000000 -0500
++++ src/libkscreen-5.8.3/backends/CMakeLists.txt	2016-11-14 01:09:26.906446400 -0600
+@@ -1,6 +1,8 @@
+ add_subdirectory(fake)
+ add_subdirectory(qscreen)
++if(KF5Wayland_FOUND)
+ add_subdirectory(kwayland)
++endif()
+ 
+ if(${XCB_RANDR_FOUND})
+     message(STATUS "Will build xrandr backend.")
+--- origsrc/libkscreen-5.8.3/src/doctor/CMakeLists.txt	2016-11-01 07:15:24.000000000 -0500
++++ src/libkscreen-5.8.3/src/doctor/CMakeLists.txt	2016-11-14 01:18:16.700606000 -0600
+@@ -1,4 +1,10 @@
++if(KF5Wayland_FOUND)
++  set(Wayland_SRCS dpmsclient.cpp)
++endif()
+ 
+-add_executable(kscreen-doctor main.cpp doctor.cpp dpmsclient.cpp)
+-target_link_libraries(kscreen-doctor Qt5::DBus KF5::Screen KF5::WaylandClient)
++add_executable(kscreen-doctor main.cpp doctor.cpp ${Wayland_SRCS})
++target_link_libraries(kscreen-doctor Qt5::DBus Qt5::Gui KF5::Screen)
++if(KF5Wayland_FOUND)
++  target_link_libraries(kscreen-doctor KF5::WaylandClient)
++endif()
+ install(TARGETS kscreen-doctor ${INSTALL_TARGETS_DEFAULT_ARGS})
+--- origsrc/libkscreen-5.8.3/src/doctor/doctor.cpp	2016-11-01 07:15:24.000000000 -0500
++++ src/libkscreen-5.8.3/src/doctor/doctor.cpp	2016-11-14 01:19:33.221436700 -0600
+@@ -17,7 +17,9 @@
+  *************************************************************************************/
+ 
+ #include "doctor.h"
++#if 0
+ #include "dpmsclient.h"
++#endif
+ 
+ #include <QCoreApplication>
+ #include <QCommandLineParser>
+@@ -99,6 +101,7 @@ void Doctor::start(QCommandLineParser *p
+             return;
+ 
+         }
++#if 0
+         m_dpmsClient = new DpmsClient(this);
+         connect(m_dpmsClient, &DpmsClient::finished, qApp, &QCoreApplication::quit);
+ 
+@@ -109,6 +112,7 @@ void Doctor::start(QCommandLineParser *p
+             setDpms(dpmsArg);
+         }
+         return;
++#endif
+     }
+ 
+     if (m_parser->isSet("log")) {
+@@ -124,6 +128,7 @@ void Doctor::start(QCommandLineParser *p
+     QTimer::singleShot(0, qApp->quit);
+ }
+ 
++#if 0
+ void KScreen::Doctor::setDpms(const QString& dpmsArg)
+ {
+     qDebug() << "SetDpms: " << dpmsArg;
+@@ -152,6 +157,7 @@ void Doctor::showDpms()
+ 
+     m_dpmsClient->connect();
+ }
++#endif
+ 
+ void Doctor::showBackends() const
+ {
+--- origsrc/libkscreen-5.8.3/src/doctor/dpmsclient.h	2016-11-01 07:15:24.000000000 -0500
++++ src/libkscreen-5.8.3/src/doctor/dpmsclient.h	2016-11-14 01:14:31.295109200 -0600
+@@ -23,8 +23,10 @@
+ #include <QObject>
+ #include "../config.h"
+ 
++#if 0
+ #include <KWayland/Client/registry.h>
+ #include <KWayland/Client/dpms.h>
++#endif
+ 
+ class QThread;
+ 
+--- origsrc/libkscreen-5.8.3/tests/CMakeLists.txt	2016-11-01 07:15:24.000000000 -0500
++++ src/libkscreen-5.8.3/tests/CMakeLists.txt	2016-11-14 01:13:22.730157800 -0600
+@@ -1,4 +1,6 @@
+ add_executable(printconfig testplugandplay.cpp testpnp.cpp)
+ target_link_libraries(printconfig Qt5::Gui KF5::Screen)
+ 
++if(KF5Wayland_FOUND)
+ add_subdirectory(kwayland)
++endif()

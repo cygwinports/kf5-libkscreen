@@ -1,7 +1,7 @@
 inherit kf5
 
 NAME="kf5-libkscreen"
-VERSION=5.8.5
+VERSION=5.8.8
 RELEASE=1
 CATEGORY="Libs"
 SUMMARY="KDE screens library"
